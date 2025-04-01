@@ -1,0 +1,8 @@
+{
+  "name": "DebugPythonFunction",
+  "route": "/debug-python",
+  "language": "python",
+  "code": "import sys\nimport json\nimport time\n\ndef handler(event, context):\n    # Print to stderr for debugging\n    print('Function started', file=sys.stderr)\n    print(f'Event: {json.dumps(event)}', file=sys.stderr)\n    print(f'Context: {json.dumps(context, default=str)}', file=sys.stderr)\n    \n    # Log system info\n    print(f'Python version: {sys.version}', file=sys.stderr)\n    print(f'Current time: {time.time()}', file=sys.stderr)\n    \n    # Add short delay to see if timing is issue\n    print('About to wait 1 second', file=sys.stderr)\n    time.sleep(1)\n    print('Wait completed', file=sys.stderr)\n    \n    # Return result\n    name = event.get('name', 'World')\n    result = {\n        'message': f'Hello, {name}!',\n        'timestamp': context.get('start_time'),\n        'request_id': context.get('request_id')\n    }\n    print(f'Returning result: {json.dumps(result)}', file=sys.stderr)\n    return result",
+  "timeout": 30000,
+  "active": true
+}

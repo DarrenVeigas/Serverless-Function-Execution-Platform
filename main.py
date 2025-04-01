@@ -1,4 +1,3 @@
-# File: main.py
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, DateTime, Text
@@ -106,7 +105,7 @@ def get_function_by_id(function_id: int, db: Session = Depends(get_db)):
 
 @app.get("/api/functions/route/{route:path}", response_model=FunctionInDB)
 def get_function_by_route(route: str, db: Session = Depends(get_db)):
-    # If route doesn't start with /, add it
+    # Ensure route starts with /
     if not route.startswith('/'):
         route = '/' + route
     
@@ -128,6 +127,10 @@ def create_function(function: FunctionCreate, db: Session = Depends(get_db)):
             detail="A function with this name or route already exists"
         )
     
+    # Ensure route starts with /
+    if not function.route.startswith('/'):
+        function.route = '/' + function.route
+    
     db_function = Function(**function.dict())
     db.add(db_function)
     db.commit()
@@ -148,6 +151,10 @@ def update_function(function_id: int, function: FunctionUpdate, db: Session = De
             conflict_query = conflict_query.filter(Function.name == function.name)
         
         if function.route:
+            # Ensure route starts with /
+            if function.route and not function.route.startswith('/'):
+                function.route = '/' + function.route
+            
             conflict_query = conflict_query.filter(Function.route == function.route)
         
         if conflict_query.first():
@@ -175,6 +182,18 @@ def delete_function(function_id: int, db: Session = Depends(get_db)):
     db.delete(db_function)
     db.commit()
     return None
+
+# Import the executor router
+from executor import router as executor_router
+
+# Include the executor router
+app.include_router(executor_router)
+
+# Shutdown event to clean up resources
+@app.on_event("shutdown")
+def shutdown_event():
+    from executor import docker_manager
+    docker_manager.cleanup()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
